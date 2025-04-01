@@ -14,6 +14,14 @@ users = {}
 def handle_join(data):
    username = data["username"]
    room = data["room"]
+   
+    # check if user was in a room
+   current_room = users.get(username)
+   if current_room:
+      leave_room(current_room)
+      send(f"{username} has left the {current_room} room.", room=current_room)
+
+   
    users[username] = room
    join_room(room) 
    
@@ -46,18 +54,12 @@ def handle_private_message(data):
 @socketio.on("disconnect")   
 def handle_disconnect():
    for username, room in users.items():
-      leave_room(room)
-      send(f"{username} has left the chat.", room=room)
-      del users[username]
-      break
+      if request.sid in socketio.server.sockets:
+            leave_room(room)
+            send(f"{username} has left the chat.", room=room)
+            del users[username]
+            break
 
-
-# # handling incoming messages from clients
-# @socketio.on("message")
-# def handle_message(msg):
-#    print(f"Received message {msg}")
-#    send(msg, broadcast=True)
-   
 # run the Flask app with SocketIO support
 if __name__ == "__main__":
    socketio.run(app, host="0.0.0.0", port=5000)
