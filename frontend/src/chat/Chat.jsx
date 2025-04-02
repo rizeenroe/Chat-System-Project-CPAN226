@@ -105,7 +105,7 @@ export default function Chat({ user }) {
     return () => {
       socketRef.current.disconnect();
     };
-  }, [user.token]);
+  }, [user.token, user.username]); // Added user.username to the dependency array
 
   const addMessage = (message) => {
     setState((prev) => ({
