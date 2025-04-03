@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import io from "socket.io-client";
+import ChatHeader from "./ChatHeader";
+import ChatContent from "./ChatContent";
 import "./Chat.css";
 
 export default function Chat({ user }) {
@@ -10,7 +12,7 @@ export default function Chat({ user }) {
     target: "",
     currentRoom: "",
     unreadMessages: {},
-    conversations: new Set(),
+    conversations: user.conversations || [],
     roomInput: "",
   });
 
@@ -24,6 +26,26 @@ export default function Chat({ user }) {
     activeTabRef.current = state.activeTab;
     targetRef.current = state.target;
   }, [state.activeTab, state.target]);
+
+  useEffect(() => {
+    const initialMessages = [];
+    state.conversations.forEach((conversation) => {
+      if (conversation.messages) {
+        initialMessages.push(
+          ...conversation.messages.map((msg) => ({
+            ...msg,
+            type: msg.sender === user.username ? "direct-out" : "direct",
+            recipient: conversation.with_user,
+          }))
+        );
+      }
+    });
+
+    setState((prev) => ({
+      ...prev,
+      messages: initialMessages,
+    }));
+  }, [state.conversations, user.username]);
 
   useEffect(() => {
     socketRef.current = io("http://localhost:5000", {
@@ -66,10 +88,52 @@ export default function Chat({ user }) {
         }));
       }
 
-      setState((prev) => ({
-        ...prev,
-        conversations: new Set([...prev.conversations, data.sender]),
-      }));
+      setState((prev) => {
+        const existingConversation = prev.conversations.find(
+          (conv) => conv.with_user === data.sender
+        );
+
+        const updatedConversations = existingConversation
+          ? prev.conversations.map((conv) =>
+              conv.with_user === data.sender
+                ? {
+                    ...conv,
+                    messages: [
+                      ...conv.messages,
+                      {
+                        type: "direct",
+                        sender: data.sender,
+                        recipient: user.username,
+                        message: data.message,
+                        timestamp: new Date(
+                          data.timestamp
+                        ).toLocaleTimeString(),
+                      },
+                    ],
+                  }
+                : conv
+            )
+          : [
+              ...prev.conversations,
+              {
+                with_user: data.sender,
+                messages: [
+                  {
+                    type: "direct",
+                    sender: data.sender,
+                    recipient: user.username,
+                    message: data.message,
+                    timestamp: new Date(data.timestamp).toLocaleTimeString(),
+                  },
+                ],
+              },
+            ];
+
+        return {
+          ...prev,
+          conversations: updatedConversations,
+        };
+      });
 
       addMessage({
         type: "direct",
@@ -105,7 +169,7 @@ export default function Chat({ user }) {
     return () => {
       socketRef.current.disconnect();
     };
-  }, [user.token, user.username]); // Added user.username to the dependency array
+  }, [user.token, user.username]);
 
   const addMessage = (message) => {
     setState((prev) => ({
@@ -122,7 +186,7 @@ export default function Chat({ user }) {
 
   const joinRoom = () => {
     if (state.roomInput) {
-      socketRef.current.emit("join_room", { room: state.roomInput });
+      socketRef.current.emit("join", { room: state.roomInput });
       setState((prev) => ({ ...prev, roomInput: "" }));
     }
   };
@@ -138,11 +202,46 @@ export default function Chat({ user }) {
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    addMessage(newMessage);
-    setState((prev) => ({ ...prev, input: "" }));
+    // addMessage(newMessage);
+
+    if (state.activeTab === "direct") {
+      addMessage(newMessage);
+
+      setState((prev) => {
+        const existingConversation = prev.conversations.find(
+          (conv) => conv.with_user === state.target
+        );
+
+        const updatedConversations = existingConversation
+          ? prev.conversations.map((conv) =>
+              conv.with_user === state.target
+                ? {
+                    ...conv,
+                    messages: [...conv.messages, newMessage],
+                  }
+                : conv
+            )
+          : [
+              ...prev.conversations,
+              {
+                with_user: state.target,
+                messages: [newMessage],
+              },
+            ];
+
+        return {
+          ...prev,
+          conversations: updatedConversations,
+          input: "",
+        };
+      });
+    } else {
+      setState((prev) => ({ ...prev, input: "" }));
+    }
 
     if (state.activeTab === "room") {
       socketRef.current.emit("room_message", { message: state.input });
+      setState((prev) => ({ ...prev, input: "" }));
     } else {
       socketRef.current.emit("private_message", {
         recipient: state.target,
@@ -163,190 +262,31 @@ export default function Chat({ user }) {
 
   const filteredMessages = useMemo(() => {
     return state.messages.filter((msg) => {
-      if (state.activeTab === "room") return msg.type !== "direct";
-      return (
-        (msg.type === "direct" && msg.sender === state.target) ||
-        (msg.type === "direct-out" && msg.recipient === state.target)
-      );
+      if (state.activeTab === "room") {
+        return msg.type === "room" || msg.type === "room-out";
+      }
+      if (state.activeTab === "direct") {
+        return (
+          (msg.type === "direct" && msg.sender === state.target) ||
+          (msg.type === "direct-out" && msg.recipient === state.target)
+        );
+      }
+      return false;
     });
   }, [state.messages, state.activeTab, state.target]);
 
   return (
     <div className="chat-container">
-      {/* Header */}
-      <div className="chat-header">
-        <h2>Welcome, {user.username}</h2>
-        <div className="chat-tabs">
-          <button
-            className={`tab-button ${
-              state.activeTab === "room" ? "active-tab" : ""
-            }`}
-            onClick={() => setState((prev) => ({ ...prev, activeTab: "room" }))}
-          >
-            Room Chat
-          </button>
-          <button
-            className={`tab-button ${
-              state.activeTab === "direct" ? "active-tab" : ""
-            }`}
-            onClick={() =>
-              setState((prev) => ({ ...prev, activeTab: "direct" }))
-            }
-          >
-            Direct Messages
-            {Object.keys(state.unreadMessages).length > 0 && (
-              <span className="unread-counter">
-                {Object.values(state.unreadMessages).reduce((a, b) => a + b, 0)}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="chat-content">
-        {/* Sidebar */}
-        {state.activeTab === "direct" && (
-          <div className="conversation-sidebar">
-            <div className="new-conversation">
-              <input
-                type="text"
-                placeholder="Enter username"
-                value={state.target}
-                onChange={(e) =>
-                  setState((prev) => ({ ...prev, target: e.target.value }))
-                }
-                onKeyPress={handleKeyPress}
-                className="input"
-              />
-              <button
-                onClick={() =>
-                  setState((prev) => ({
-                    ...prev,
-                    conversations: new Set([
-                      ...prev.conversations,
-                      state.target,
-                    ]),
-                    activeTab: "direct",
-                  }))
-                }
-                className="small-button"
-              >
-                New Chat
-              </button>
-            </div>
-            <h3>Conversations</h3>
-            {Array.from(state.conversations).map((username) => (
-              <div
-                key={username}
-                className={`conversation-item ${
-                  state.target === username ? "active-conversation" : ""
-                }`}
-                onClick={() =>
-                  setState((prev) => ({
-                    ...prev,
-                    target: username,
-                    activeTab: "direct",
-                    unreadMessages: {
-                      ...prev.unreadMessages,
-                      [username]: 0,
-                    },
-                  }))
-                }
-              >
-                {username}
-                {state.unreadMessages[username] > 0 && (
-                  <span className="unread-badge">
-                    {state.unreadMessages[username]}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Chat Area */}
-        <div className="chat-area">
-          {state.activeTab === "room" && !state.currentRoom && (
-            <div className="room-join">
-              <h3>Join a Room</h3>
-              <div className="room-input-container">
-                <input
-                  type="text"
-                  placeholder="Enter room name"
-                  value={state.roomInput}
-                  onChange={(e) =>
-                    setState((prev) => ({ ...prev, roomInput: e.target.value }))
-                  }
-                  onKeyPress={handleKeyPress}
-                  className="input"
-                />
-                <button onClick={joinRoom} className="button">
-                  Join
-                </button>
-              </div>
-            </div>
-          )}
-
-          {((state.activeTab === "room" && state.currentRoom) ||
-            (state.activeTab === "direct" && state.target)) && (
-            <>
-              <div className="messages">
-                {filteredMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`message ${
-                      msg.type === "direct"
-                        ? "direct-message"
-                        : msg.type === "direct-out"
-                        ? "direct-out-message"
-                        : msg.type === "room-out"
-                        ? "room-out-message"
-                        : msg.type === "system"
-                        ? "system-message"
-                        : ""
-                    }`}
-                  >
-                    <div className="message-header">
-                      <strong>
-                        {msg.type === "direct-out" || msg.type === "room-out"
-                          ? "You"
-                          : msg.sender}
-                      </strong>
-                      <span className="timestamp">{msg.timestamp}</span>
-                    </div>
-                    <div>{msg.message}</div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="input-area">
-                <input
-                  value={state.input}
-                  onChange={(e) =>
-                    setState((prev) => ({ ...prev, input: e.target.value }))
-                  }
-                  placeholder={
-                    state.activeTab === "room"
-                      ? `Message room ${state.currentRoom}`
-                      : `Message ${state.target}`
-                  }
-                  onKeyPress={handleKeyPress}
-                  className="message-input"
-                />
-                <button
-                  onClick={sendMessage}
-                  className="send-button"
-                  disabled={!state.input.trim()}
-                >
-                  Send
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      <ChatHeader user={user} state={state} setState={setState} />
+      <ChatContent
+        state={state}
+        setState={setState}
+        filteredMessages={filteredMessages}
+        messagesEndRef={messagesEndRef}
+        joinRoom={joinRoom}
+        sendMessage={sendMessage}
+        handleKeyPress={handleKeyPress}
+      />
     </div>
   );
 }
