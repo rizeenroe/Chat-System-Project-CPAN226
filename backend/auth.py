@@ -77,5 +77,6 @@ def login():
     return jsonify({"error": "Invalid credentials"}), 401
 
 def verify_token(token):
-    """Verify if token is valid user."""
-    return get_user(token) is not None
+    """Verify if token is valid and return the username."""
+    user = get_user(token)
+    return user["username"] if user else None
