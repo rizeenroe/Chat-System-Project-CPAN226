@@ -1,7 +1,7 @@
 from flask import request
 from flask_socketio import join_room, leave_room, emit
 from datetime import datetime
-from database import save_message, get_user
+from database import save_message, get_user, get_or_create_conversation
 from auth import verify_token
 from socket_Initializer import socketio
 import threading #used to allow multiple users to connect to the server at the same time
@@ -223,7 +223,7 @@ def handle_private_message(data):
     if not recipient or not get_user(recipient) or not message or not message.strip():
         emit_error(ERROR_RECIPIENT_REQUIRED)
         return #the blank returns are used to stop the function from running
-    
+        
     #save the message to the database
     save_message(sender, recipient, message.strip(), is_private=True) #saying that the message is private
     

@@ -31,21 +31,21 @@ def add_user(username, password):
     })
 
 #retrieve or create a conversation between participants.
-def get_or_create_conversation(participants):
+# def get_or_create_conversation(participants):
     
-    participants = sorted(participants) #sorts to ensure consistent order
-    conversation_id = f"{participants[0]}_{participants[1]}" #makes the conversation id with the two users (participants)
+#     participants = sorted(participants) #sorts to ensure consistent order
+#     conversation_id = f"{participants[0]}_{participants[1]}" #makes the conversation id with the two users (participants)
     
-    #check if the conversation already exists
-    conversation = db["conversations"].find_one({"conversation_id": conversation_id})
-    #if conversation does not exist it creates it 
-    if not conversation:
-        db["conversations"].insert_one({
-            "conversation_id": conversation_id,
-            "participants": participants,
-            "messages": []
-        })
-    return conversation_id
+#     #check if the conversation already exists
+#     conversation = db["conversations"].find_one({"conversation_id": conversation_id})
+#     #if conversation does not exist it creates it 
+#     if not conversation:
+#         db["conversations"].insert_one({
+#             "conversation_id": conversation_id,
+#             "participants": participants,
+#             "messages": []
+#         })
+#     return conversation_id
 
 #saves a message in the database - called when a message is sent
 def save_message(sender, recipient, message, is_private):
