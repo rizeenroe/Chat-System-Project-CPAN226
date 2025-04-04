@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './auth/Login/Login';
-import Chat from './chat/Chat';
+import Chat from './chat/Chat/Chat';
 import { useState } from 'react';
 
 function App() {

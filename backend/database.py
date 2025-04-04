@@ -32,12 +32,13 @@ def add_user(username, password):
 
 #retrieve or create a conversation between participants.
 def get_or_create_conversation(participants):
+    
     participants = sorted(participants) #sorts to ensure consistent order
-    conversation_id = f"{participants[0]}_{participants[1]}"
+    conversation_id = f"{participants[0]}_{participants[1]}" #makes the conversation id with the two users (participants)
     
+    #check if the conversation already exists
     conversation = db["conversations"].find_one({"conversation_id": conversation_id})
-    
-    # check if the conversation already exists if not it creates it
+    #if conversation does not exist it creates it 
     if not conversation:
         db["conversations"].insert_one({
             "conversation_id": conversation_id,
@@ -46,37 +47,38 @@ def get_or_create_conversation(participants):
         })
     return conversation_id
 
-def save_message(sender, recipient, message):
-    """Save a message in the appropriate conversation."""
-    is_private = not recipient.startswith("room_")
+#saves a message in the database - called when a message is sent
+def save_message(sender, recipient, message, is_private):
+    print(f"Saving message from {sender} to {recipient}: {message} {is_private}")
     
+    #cheks if the recipient is a room or a user 
+    #if true then it makes the conversation id with the two users (participants)
+    #if false then it makes the conversation id with the room name
     if is_private:
-        # Get or create a private conversation
+        #for private conversations sort the users (sender and recipient)
+        #then set the conversation id as the sorted users
         participants = sorted([sender, recipient])
         conversation_id = f"{participants[0]}_{participants[1]}"
     else:
-        # Room conversation
-        conversation_id = recipient
+        #for room conversations, the first participant is the room id
+        conversation_id = "Room Chat" + recipient
     
+    #formates the data to be saved in the database
     message_data = {
         "sender": sender,
         "message": message,
-        "timestamp": datetime.now()
+        "timestamp": datetime.now() #used for the time stamp
     }
     
+    #saves the message in the database with the conversation id
+    #if the conversation does not exist it creates it
     db["conversations"].update_one(
         {"conversation_id": conversation_id},
         {"$push": {"messages": message_data}},
-        upsert=True  # Create the conversation if it doesn't exist
+        upsert=True  #create the conversation if it doesn't exist
     )
 
-def get_room_messages(room):
-    """Retrieve messages for a room."""
-    conversation = db["conversations"].find_one({"conversation_id": room})
-    return conversation["messages"] if conversation else []
-
 def get_messages_between_users(user1, user2):
-    """Retrieve messages between two users."""
     participants = sorted([user1, user2])
     conversation_id = f"{participants[0]}_{participants[1]}"
     conversation = db["conversations"].find_one({"conversation_id": conversation_id})

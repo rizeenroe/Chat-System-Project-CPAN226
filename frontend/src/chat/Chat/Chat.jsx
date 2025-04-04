@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import io from "socket.io-client";
-import ChatHeader from "./ChatHeader";
-import ChatContent from "./ChatContent";
+import ChatHeader from "../ChatHeader/ChatHeader";
+import ChatContent from "../ChatContent/ChatContent";
 import "./Chat.css";
 
 export default function Chat({ user }) {
@@ -11,7 +11,6 @@ export default function Chat({ user }) {
     activeTab: "room",
     target: "",
     currentRoom: "",
-    unreadMessages: {},
     conversations: user.conversations || [],
     roomInput: "",
   });
@@ -75,19 +74,6 @@ export default function Chat({ user }) {
     });
 
     handleSocketEvents("private_message", (data) => {
-      const isActiveDirect =
-        activeTabRef.current === "direct" && targetRef.current === data.sender;
-
-      if (!isActiveDirect) {
-        setState((prev) => ({
-          ...prev,
-          unreadMessages: {
-            ...prev.unreadMessages,
-            [data.sender]: (prev.unreadMessages[data.sender] || 0) + 1,
-          },
-        }));
-      }
-
       setState((prev) => {
         const existingConversation = prev.conversations.find(
           (conv) => conv.with_user === data.sender
@@ -201,8 +187,6 @@ export default function Chat({ user }) {
       message: state.input,
       timestamp: new Date().toLocaleTimeString(),
     };
-
-    // addMessage(newMessage);
 
     if (state.activeTab === "direct") {
       addMessage(newMessage);

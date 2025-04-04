@@ -19,7 +19,6 @@ export default function Login({ setUser }) {
 
       const data = await response.json();
       if (response.ok) {
-        // Fetch conversations after successful login
         const conversationsResponse = await fetch(
           "http://localhost:5000/api/conversations",
           {

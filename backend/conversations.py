@@ -13,12 +13,19 @@ def get_user_conversations():
     if not user:
         return jsonify({"error": "Invalid token"}), 401
 
-    # Fetch conversations where the user is a participant
-    conversations = db["conversations"].find({"participants": token})
-    user_conversations = []
+    username = user["username"]
 
-    for conversation in conversations:
-        other_user = [p for p in conversation["participants"] if p != token][0]
+    # Search for conversations where the user is a participant
+    conversations_cursor = db["conversations"].find({
+        "conversation_id": {"$regex": f"^{username}_|_{username}$"}
+    })
+
+    user_conversations = []
+    for conversation in conversations_cursor:
+        # Extract the other participant from the conversation_id
+        participants = conversation["conversation_id"].split("_")
+        other_user = participants[0] if participants[1] == username else participants[1]
+
         user_conversations.append({
             "conversation_id": conversation["conversation_id"],
             "with_user": other_user,
