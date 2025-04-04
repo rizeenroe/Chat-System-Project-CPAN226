@@ -77,9 +77,3 @@ def save_message(sender, recipient, message, is_private):
         {"$push": {"messages": message_data}},
         upsert=True  #create the conversation if it doesn't exist
     )
-
-def get_messages_between_users(user1, user2):
-    participants = sorted([user1, user2])
-    conversation_id = f"{participants[0]}_{participants[1]}"
-    conversation = db["conversations"].find_one({"conversation_id": conversation_id})
-    return conversation["messages"] if conversation else []

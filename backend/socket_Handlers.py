@@ -76,7 +76,6 @@ def handle_connect():
         connected_users[token] = request.sid 
     print(f"User connected: {token} (SID: {request.sid})") #debugging
 
-#part of the socketIO library
 #this is used to handle the disconnection of the users from the server
 #when a user disconnects from the server this function is called
 @socketio.on('disconnect')
@@ -114,7 +113,6 @@ def handle_disconnect():
                 
     print(f"User disconnected: {sid}") #debugging
 
-#part of the socketIO library
 #this is used to handle the joining of the users to a room
 #when a user joins a room this function is called
 @socketio.on('join')
@@ -165,7 +163,6 @@ def handle_join(data):
     
     print(f"{token} joined room: {room}") #debugging
 
-#part of the socketIO library
 #this handles the messages sent to the room
 #when a user sends a message to the room this function is called
 @socketio.on('room_message')
