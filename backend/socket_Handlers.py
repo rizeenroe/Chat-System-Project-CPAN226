@@ -1,7 +1,7 @@
 from flask import request
 from flask_socketio import join_room, leave_room, emit
 from datetime import datetime
-from database import save_message, get_user, get_or_create_conversation
+from database import save_message, get_user
 from auth import verify_token
 from socket_Initializer import socketio
 import threading #used to allow multiple users to connect to the server at the same time
