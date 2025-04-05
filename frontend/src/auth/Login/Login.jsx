@@ -1,4 +1,5 @@
 import { useState } from "react";
+import config from "../../Config";
 import "./Login.css";
 
 export default function Login({ setUser }) {
@@ -11,7 +12,7 @@ export default function Login({ setUser }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:5000/auth/login", {
+      const response = await fetch(`${config.BASE_URL}${config.AUTH_LOGIN}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
@@ -20,7 +21,7 @@ export default function Login({ setUser }) {
       const data = await response.json();
       if (response.ok) {
         const conversationsResponse = await fetch(
-          "http://localhost:5000/api/conversations",
+          `${config.BASE_URL}${config.API_CONVERSATIONS}`,
           {
             method: "GET",
             headers: {

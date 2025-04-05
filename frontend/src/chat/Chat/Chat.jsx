@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import io from "socket.io-client";
 import ChatHeader from "../ChatHeader/ChatHeader";
 import ChatContent from "../ChatContent/ChatContent";
+import config from "../../Config";
 import "./Chat.css";
 
 export default function Chat({ user }) {
@@ -47,7 +48,7 @@ export default function Chat({ user }) {
   }, [state.conversations, user.username]);
 
   useEffect(() => {
-    socketRef.current = io("http://localhost:5000", {
+    socketRef.current = io(config.BASE_URL, {
       query: { token: user.token },
     });
 
