@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from datetime import datetime
 
-MONGO_URI = "mongodb+srv://BeaVert:UtxyMWFV1jcLeOUd@birmanbank.wvqrnfl.mongodb.net/?retryWrites=true&w=majority&appName=BirmanBank"
+MONGO_URI = "mongodb+srv://ChatDemo:aTDyzIS7nFh83Pkz@birmanbank.wvqrnfl.mongodb.net/?retryWrites=true&w=majority&appName=BirmanBank"
 DB_NAME = "chat_system"
 
 client = MongoClient(MONGO_URI) 
@@ -29,24 +29,7 @@ def add_user(username, password):
         "username": username,
         "password": password,
     })
-
-#retrieve or create a conversation between participants.
-# def get_or_create_conversation(participants):
     
-#     participants = sorted(participants) #sorts to ensure consistent order
-#     conversation_id = f"{participants[0]}_{participants[1]}" #makes the conversation id with the two users (participants)
-    
-#     #check if the conversation already exists
-#     conversation = db["conversations"].find_one({"conversation_id": conversation_id})
-#     #if conversation does not exist it creates it 
-#     if not conversation:
-#         db["conversations"].insert_one({
-#             "conversation_id": conversation_id,
-#             "participants": participants,
-#             "messages": []
-#         })
-#     return conversation_id
-
 #saves a message in the database - called when a message is sent
 def save_message(sender, recipient, message, is_private):
     print(f"Saving message from {sender} to {recipient}: {message} {is_private}")
